@@ -1,35 +1,7 @@
 from __future__ import annotations
-
 import struct
-from enum import Enum
-import lz4.block
-from xml.etree import ElementTree
 
-
-BEGINNING_OF_FILE = 0
-
-def auto_str(cls):
-	def __str__(self):
-		return '%s(%s)' % (
-			type(self).__name__,
-			', '.join('%s=%s' % item for item in vars(self).items())
-		)
-	cls.__str__ = __str__
-	return cls
-
-
-# lz4.frame.decompress(DATA)
-# https://python-lz4.readthedocs.io/en/stable/
-
-# LZ4 encoding
-# https://docs.python.org/3/library/struct.html#format-characters
-
-
-class FileSizes(int, Enum):
-	Byte = 1
-	UInt16 = 2
-	UInt32 = 4
-	UInt64 = 8
+from modsettings import auto_str, ModInfoKeys, auto_repr
 
 
 # from lslib/LSLib/LS/PackageCommon.cs -- LSPKHeader16
@@ -58,21 +30,21 @@ class FileSizes(int, Enum):
 
 @auto_str
 class LSPKHeader:
-	LSPKHeader16Format = f"=IQIBB{'x' * 16}H"
+	LSPKHeader16Format = "=IQIBB16sH"
 	LSPKHeader16Struct = struct.Struct(LSPKHeader16Format)
-	
+
 	SIZE = struct.calcsize(LSPKHeader16Format)
-	
+
 	def __init__(self, buffer):
 		header = LSPKHeader.LSPKHeader16Struct.unpack(buffer)
-		
+
 		self.version = header[0]
 		self.file_list_offset = header[1]
 		self.file_list_size = header[2]
 		self.flags = header[3]
 		self.priority = header[4]
-		# self.md5 = header[5]
-		self.num_parts = header[5]
+		self.md5 = header[5]
+		self.num_parts = header[6]
 
 
 # from lslib/LSLib/LS/PackageCommon.cs -- FileEntry18
@@ -92,7 +64,7 @@ class LSPKHeader:
 
 @auto_str
 class FileEntry:
-	FileEntry18Format = f"=256sIHBBII"
+	FileEntry18Format = "=256sIHBBII"
 	FileEntry18Struct = struct.Struct(FileEntry18Format)
 
 	SIZE = struct.calcsize(FileEntry18Format)
@@ -104,7 +76,7 @@ class FileEntry:
 		offset_in_file_1 = entry[1]
 		offset_in_file_2 = entry[2]
 
-		self.offset_in_file = offset_in_file_1 | (offset_in_file_2 << 32) # TODO: make this better
+		self.offset_in_file = offset_in_file_1 | (offset_in_file_2 << 32)  # TODO: make this better
 
 		self.archive_part = entry[3]
 		self.flags = entry[4]
@@ -121,46 +93,28 @@ class FileEntry:
 	def from_buffer(buffer: bytes) -> list[FileEntry]:
 		if len(buffer) % FileEntry.SIZE != 0:
 			raise ValueError(f"buffer has an invalid size! ({len(buffer)})")
-
 		return [FileEntry(item) for item in list(FileEntry._divide_chunks(buffer, FileEntry.SIZE))]
 
 
-# print("FileEntry18", struct.calcsize(FileEntry18Format))
+@auto_str
+@auto_repr
+class ModInfo:
+	def __init__(self, name: str, folder: str, uuid: str, md5: bytes, version32: int, version64: int):
+		self.folder = folder
+		self.name = name
+		self.uuid = uuid
+		self.md5 = md5
+		self.version32 = version32
+		self.version64 = version64
 
-# PackageReader line 348 // Read()
+	@classmethod
+	def from_dict(cls, data: dict[str, str | int | bytes]) -> ModInfo:
+		return cls(
+			data[ModInfoKeys.NAME[0]],
+			data[ModInfoKeys.FOLDER[0]],
+			data[ModInfoKeys.UUID[0]],
+			data[ModInfoKeys.MD5[0]],
+			data[ModInfoKeys.VERSION32[0]],
+			data[ModInfoKeys.VERSION64[0]]
+		)
 
-# print("LSPKHeader size:", LSPKHeader.SIZE)
-
-
-with open("ImprovedUI.pak", 'rb') as file:
-	LSPK_signature = file.read(4) # skip LSPK file intro
-	header = LSPKHeader(file.read(LSPKHeader.SIZE))
-	print(header)
-	# skip = file.read(header.file_list_offset)
-	file.seek(header.file_list_offset, BEGINNING_OF_FILE)
-
-	num_files = int.from_bytes(file.read(FileSizes.UInt32), "little")
-	print("Files:", num_files)
-
-	buf_size = num_files * FileEntry.SIZE
-	# print("required buffer:", buf_size)
-
-	compressed_size = int.from_bytes(file.read(FileSizes.UInt32), "little")
-	# print("compressed size:", compressed_size)
-
-	compressed_file_list = file.read(compressed_size)
-	# print(compressed_file_list)
-
-	decompressed = lz4.block.decompress(compressed_file_list, uncompressed_size=buf_size)
-	# print(decompressed)
-
-	files = FileEntry.from_buffer(decompressed)
-
-	for f in files:
-		print(f)
-
-		file.seek(f.offset_in_file, BEGINNING_OF_FILE)
-		file_data = file.read(f.size_on_disk)
-		uncompressed_file = lz4.block.decompress(file_data, uncompressed_size=f.uncompressed_size)
-		print(uncompressed_file.decode("UTF-8"))
-		break

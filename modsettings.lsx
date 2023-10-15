@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<save>
+  <version major="4" minor="0" revision="9" build="331"/>
+  <region id="ModuleSettings">
+    <node id="root">
+      <children>
+        <node id="ModOrder">
+          <children>
+            <node id="Module">
+              <attribute id="UUID" type="FixedString" value="28ac9ce2-2aba-8cda-b3b5-6e922f71b6b8"/>
+            </node>
+          </children>
+        </node>
+        <node id="Mods">
+          <children>
+            <node id="ModuleShortDesc">
+              <attribute id="Folder" value="GustavDev" type="LSString"/>
+              <attribute id="MD5" value="" type="LSString"/>
+              <attribute id="Name" value="GustavDev" type="LSString"/>
+              <attribute id="UUID" value="28ac9ce2-2aba-8cda-b3b5-6e922f71b6b8" type="FixedString"/>
+              <attribute id="Version64" value="144537830041394818" type="int64"/>
+            </node>
+          </children>
+        </node>
+      </children>
+    </node>
+  </region>
+</save>
