@@ -18,6 +18,8 @@ for mod in mods:
 			modinfos.append(info)
 	except ValueError as e:
 		print(f"could not parse {mod}: {e}")
+	except NotImplementedError as e:
+		print(f"{mod} is of unsupported version")
 
 	print()
 

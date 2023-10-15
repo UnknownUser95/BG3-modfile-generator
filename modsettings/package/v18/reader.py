@@ -1,36 +1,32 @@
 from io import BufferedReader
 
-from modsettings.formats import FileEntry, LSPKHeader, ModInfo
-from modsettings import FileSizes, ALL_MOD_INFO_KEYS_NAMES
+from modsettings.formats import LSPKHeader16, ModInfo
+from modsettings import VariableSizes, ALL_MOD_INFO_KEYS_NAMES, SeekOffset, INT_FORMAT
 import lz4.block
 import tempfile
 from xml.etree import ElementTree
 
+from modsettings.package.v18.formats import FileEntryV18
+
 NODE_MODULE_INFO = "ModuleInfo"
-BEGINNING_OF_FILE = 0
 
 
 def read_package_v18(file: BufferedReader) -> ModInfo | None:
-	LSPK_signature = file.read(4)  # skip LSPK file intro
-
-	if LSPK_signature != "LSPK".encode("UTF-8"):
-		raise ValueError(f"LSPK signature does not match! Is {LSPK_signature}")
-
-	header = LSPKHeader(file.read(LSPKHeader.SIZE))
+	header = LSPKHeader16(file.read(LSPKHeader16.SIZE))
 	# print(header)
 
 	if header.version != 18:
 		raise ValueError(f"version {header.version} is not supported by the V18 decompressor")
 
-	file.seek(header.file_list_offset, BEGINNING_OF_FILE)
+	file.seek(header.file_list_offset, SeekOffset.BEGINNING)
 
-	num_files = int.from_bytes(file.read(FileSizes.UInt32), "little")
+	num_files = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
 	# print("Files:", num_files)
 
-	buf_size = num_files * FileEntry.SIZE
+	buf_size = num_files * FileEntryV18.SIZE
 	# print("required buffer:", buf_size)
 
-	compressed_size = int.from_bytes(file.read(FileSizes.UInt32), "little")
+	compressed_size = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
 	# print("compressed size:", compressed_size)
 
 	compressed_file_list = file.read(compressed_size)
@@ -39,7 +35,7 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 	decompressed = lz4.block.decompress(compressed_file_list, uncompressed_size=buf_size)
 	# print(decompressed)
 
-	files: list[FileEntry] = FileEntry.from_buffer(decompressed)
+	files: list[FileEntryV18] = FileEntryV18.from_buffer(decompressed)
 
 	modinfo: dict[str, str | int] = {key: None for key in ALL_MOD_INFO_KEYS_NAMES}
 
@@ -54,7 +50,7 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 
 		# print("using", f.name)
 
-		file.seek(f.offset_in_file, BEGINNING_OF_FILE)
+		file.seek(f.offset_in_file, SeekOffset.BEGINNING)
 		file_data = file.read(f.size_on_disk)
 
 		try:
@@ -66,7 +62,7 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 		with tempfile.TemporaryFile() as tmp:
 			tmp.write(uncompressed_file)
 			tmp.flush()
-			tmp.seek(BEGINNING_OF_FILE)
+			tmp.seek(SeekOffset.BEGINNING)
 
 			meta = ElementTree.parse(tmp)
 			# print(meta)
