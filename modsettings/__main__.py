@@ -20,6 +20,7 @@ for mod in mods:
 
 		if info is not None:
 			modinfos.append(info)
+			print("OK")
 	except ValueError as e:
 		print(f"could not parse {mod}: {e}")
 	except NotImplementedError as e:
