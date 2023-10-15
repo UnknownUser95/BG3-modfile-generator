@@ -1,6 +1,6 @@
 import os
 
-from modsettings.package.v18 import read_package
+from modsettings.package.v18.reader import read_package
 from modsettings import MOD_DIR
 
 mods = os.listdir(MOD_DIR)
