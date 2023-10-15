@@ -1,14 +1,15 @@
-from io import BufferedReader
-
-from modsettings.formats import LSPKHeader16, ModInfo
-from modsettings import VariableSizes, ALL_MOD_INFO_KEYS_NAMES, SeekOffset, INT_FORMAT
-import lz4.block
 import tempfile
+from io import BufferedReader
 from xml.etree import ElementTree
+from xml.etree.ElementTree import Element
 
+import lz4.block
+
+from modsettings import VariableSizes, ALL_MOD_INFO_KEYS_NAMES, SeekOffset, INT_FORMAT
+from modsettings.formats import LSPKHeader16, ModInfo
 from modsettings.package.v18.formats import FileEntryV18
 
-NODE_MODULE_INFO = "ModuleInfo"
+NODE_MODULE_INFO: str = "ModuleInfo"
 
 
 def read_package_v18(file: BufferedReader) -> ModInfo | None:
@@ -20,19 +21,19 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 
 	file.seek(header.file_list_offset, SeekOffset.BEGINNING)
 
-	num_files = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
+	num_files: int = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
 	# print("Files:", num_files)
 
-	buf_size = num_files * FileEntryV18.SIZE
+	buf_size: int = num_files * FileEntryV18.SIZE
 	# print("required buffer:", buf_size)
 
-	compressed_size = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
+	compressed_size: int = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
 	# print("compressed size:", compressed_size)
 
-	compressed_file_list = file.read(compressed_size)
+	compressed_file_list: bytes = file.read(compressed_size)
 	# print(compressed_file_list)
 
-	decompressed = lz4.block.decompress(compressed_file_list, uncompressed_size=buf_size)
+	decompressed: bytes = lz4.block.decompress(compressed_file_list, uncompressed_size=buf_size)
 	# print(decompressed)
 
 	files: list[FileEntryV18] = FileEntryV18.from_buffer(decompressed)
@@ -51,8 +52,9 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 		# print("using", f.name)
 
 		file.seek(f.offset_in_file, SeekOffset.BEGINNING)
-		file_data = file.read(f.size_on_disk)
+		file_data: bytes = file.read(f.size_on_disk)
 
+		# some packages have an uncompressed meta file
 		try:
 			uncompressed_file = lz4.block.decompress(file_data, uncompressed_size=f.uncompressed_size)
 		except lz4.block.LZ4BlockError:
@@ -64,12 +66,13 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 			tmp.flush()
 			tmp.seek(SeekOffset.BEGINNING)
 
-			meta = ElementTree.parse(tmp)
+			meta: ElementTree = ElementTree.parse(tmp)
 			# print(meta)
-			root = meta.getroot()
+			root: Element = meta.getroot()
 
+			# TODO: is this the same for all versions?
 			# both Dependencies and ModuleInfo are 'node' elements
-			nodes = root.findall("./region/node/children/")
+			nodes: list[Element] = root.findall("./region/node/children/")
 			for node in nodes:
 				if node.get('id') == NODE_MODULE_INFO:
 					for n in node.findall("./attribute"):
@@ -81,5 +84,5 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 		print("no meta file, skipping")
 		return None
 
-	print(modinfo)
+	# print(modinfo)
 	return ModInfo.from_dict(modinfo)

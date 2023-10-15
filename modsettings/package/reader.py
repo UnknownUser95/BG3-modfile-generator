@@ -4,17 +4,14 @@ import modsettings.package.v18.reader
 from modsettings import SeekOffset, VariableSizes, SIGNATURE_SIZE, SIGNATURE, INT_FORMAT
 from modsettings.formats import ModInfo
 
-NODE_MODULE_INFO = "ModuleInfo"
-BEGINNING_OF_FILE = 0
-
 
 def read_package(pak_path: str) -> ModInfo | None:
 	# TODO: check version and use correct uncompressor
 	with open(pak_path, "rb") as file:
 		file.seek(-8, SeekOffset.END)
 
-		header_size = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
-		signature = file.read(SIGNATURE_SIZE)
+		header_size: int = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
+		signature: bytes = file.read(SIGNATURE_SIZE)
 
 		if signature == SIGNATURE:
 			file.seek(-header_size, SeekOffset.END)
@@ -22,7 +19,7 @@ def read_package(pak_path: str) -> ModInfo | None:
 			raise NotImplementedError("v13 is not yet implemented")
 
 		file.seek(0, SeekOffset.BEGINNING)
-		signature = file.read(SIGNATURE_SIZE)
+		signature: bytes = file.read(SIGNATURE_SIZE)
 
 		if signature == SIGNATURE:
 			version = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
@@ -40,7 +37,7 @@ def read_package(pak_path: str) -> ModInfo | None:
 					raise ValueError(f"Unknown version: {version}")
 
 		file.seek(0, SeekOffset.BEGINNING)
-		version = int.from_bytes(file.read(VariableSizes.Int32))
+		version: int = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
 
 		if version == 7 or version == 9:
 			raise NotImplementedError("v7/9 is not yet implemented")

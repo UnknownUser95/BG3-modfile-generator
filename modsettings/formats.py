@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import struct
 
 from modsettings import auto_str, ModInfoVariables, auto_repr

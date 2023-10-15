@@ -1,35 +1,37 @@
-import platform
 import os
+import platform
 import sys
-from shutil import copyfile
 from enum import Enum
-
+from shutil import copyfile
 
 match platform.system():
 	case "Linux":
-		STEAM_LIBRARY_FOLDER = sys.argv[1]
-		DATA_DIR = f"{STEAM_LIBRARY_FOLDER}/steamapps/compatdata/1086940/pfx/drive_c/users/steamuser/AppData/Local/Larian Studios/Baldur's Gate 3"
+		if len(sys.argv) < 2:
+			raise OSError("path to SteamLibrary folder must be given!")
+
+		STEAM_LIBRARY_FOLDER: str = sys.argv[1]
+		DATA_DIR: str = f"{STEAM_LIBRARY_FOLDER}/steamapps/compatdata/1086940/pfx/drive_c/users/steamuser/AppData/Local/Larian Studios/Baldur's Gate 3"
 	case "Windows": # TODO: check if this works
-		LOCAL_APPDATA = os.environ['LOCALAPPDATA']
-		DATA_DIR = f"{LOCAL_APPDATA}/Larian Studios/Baldur's Gate 3"
+		LOCAL_APPDATA: str = os.environ['LOCALAPPDATA']
+		DATA_DIR: str = f"{LOCAL_APPDATA}/Larian Studios/Baldur's Gate 3"
 	case _: # TODO: is MacOS the same as Linux?
 		print(f"'{platform.system()}' is not supported")
 		exit(1)
 
-MOD_DIR = f"{DATA_DIR}/Mods"
-MODSETTINGS_DIR = f"{DATA_DIR}/PlayerProfiles/Public/"
-MODSETTINGS_FILE = f"{MODSETTINGS_DIR}/modsettings.lsx"
-MODSETTINGS_BACKUP_FILE = f"{MODSETTINGS_DIR}/modsettings-backup.lsx"
-MODSETTINGS_FALLBACK_FILE = "./modsettings.lsx"
+MOD_DIR: str = f"{DATA_DIR}/Mods"
+MODSETTINGS_DIR: str = f"{DATA_DIR}/PlayerProfiles/Public/"
+MODSETTINGS_FILE: str = f"{MODSETTINGS_DIR}/modsettings.lsx"
+MODSETTINGS_BACKUP_FILE: str = f"{MODSETTINGS_DIR}/modsettings-backup.lsx"
+MODSETTINGS_FALLBACK_FILE: str = "./modsettings.lsx"
 
 if not os.path.exists(MODSETTINGS_BACKUP_FILE):
 	copyfile(MODSETTINGS_FILE, MODSETTINGS_BACKUP_FILE)
 	print("backup file created")
 
 
-SIGNATURE = b'LSPK'
-SIGNATURE_SIZE = len(SIGNATURE)
-INT_FORMAT = "little"
+SIGNATURE: bytes = b'LSPK'
+SIGNATURE_SIZE: int = len(SIGNATURE)
+INT_FORMAT: str = "little"
 
 
 class VariableSizes(int, Enum):
@@ -69,7 +71,7 @@ class ModInfoVariables(tuple, Enum):
 	VERSION64 = ("Version64", LSDataTypes.INT64)
 
 
-ALL_MOD_INFO_KEYS_NAMES = [val.value[0] for val in ModInfoVariables]
+ALL_MOD_INFO_KEYS_NAMES: list[str] = [val[0] for val in ModInfoVariables]
 
 
 def auto_str(cls):

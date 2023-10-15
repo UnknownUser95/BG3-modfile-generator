@@ -1,7 +1,11 @@
 import os
 
-from modsettings.package.reader import read_package
 from modsettings import MOD_DIR
+from modsettings.package.reader import read_package
+
+if __name__ != "__main__":
+	print("run this as main!")
+	exit(1)
 
 mods = os.listdir(MOD_DIR)
 mods = [mod for mod in mods if mod.endswith(".pak")]
