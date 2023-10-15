@@ -81,6 +81,3 @@ def auto_repr(cls):
 		)
 	cls.__repr__ = __repr__
 	return cls
-
-
-BG3_PACKAGE_VERSION = 18
