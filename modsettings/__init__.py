@@ -20,7 +20,7 @@ match platform.system():
 		exit(1)
 
 MOD_DIR: str = f"{DATA_DIR}/Mods"
-MODSETTINGS_DIR: str = f"{DATA_DIR}/PlayerProfiles/Public/"
+MODSETTINGS_DIR: str = f"{DATA_DIR}/PlayerProfiles/Public"
 MODSETTINGS_FILE: str = f"{MODSETTINGS_DIR}/modsettings.lsx"
 MODSETTINGS_BACKUP_FILE: str = f"{MODSETTINGS_DIR}/modsettings-backup.lsx"
 MODSETTINGS_FALLBACK_FILE: str = "./modsettings.lsx"
