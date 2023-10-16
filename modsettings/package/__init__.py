@@ -34,7 +34,7 @@ def has_flag(header_flags: int, flag: PackageFlags) -> bool:
 	return (header_flags & flag) == flag
 
 
-class InvalidDataException(BaseException):
+class InvalidDataException(Exception):
 	pass
 
 
