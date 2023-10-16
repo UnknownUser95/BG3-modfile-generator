@@ -18,13 +18,16 @@ for mod in mods:
 	try:
 		info = read_package(f"{MOD_DIR}/{mod}")
 
-		if info is not None:
+		if info is None:
+			print(f"{mod} has no meta file, skipping")
+		else:
 			modinfos.append(info)
 			print("OK")
 	except ValueError as e:
 		print(f"could not parse {mod}: {e}")
 	except NotImplementedError as e:
-		print(f"{mod} is of unsupported version")
+		print(f"{mod} is of v{e}, which is not implemented yet")
+		print(f"Please open an issue with your mod at https://github.com/UnknownUser95/BG3-modfile-generator/issues, so that I can properly implement the package version")
 
 	print()
 

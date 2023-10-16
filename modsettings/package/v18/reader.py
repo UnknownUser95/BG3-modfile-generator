@@ -1,15 +1,12 @@
-import tempfile
 from io import BufferedReader
-from xml.etree import ElementTree
-from xml.etree.ElementTree import Element
 
 import lz4.block
 
-from modsettings import VariableSizes, ALL_MOD_INFO_KEYS_NAMES, SeekOffset, INT_FORMAT
-from modsettings.formats import LSPKHeader16, ModInfo
+from modsettings import VariableSize, SeekOffset, read_int
+from modsettings.common import ModInfo
+from modsettings.package import read_meta
+from modsettings.package.headers import LSPKHeader16
 from modsettings.package.v18.formats import FileEntryV18
-
-NODE_MODULE_INFO: str = "ModuleInfo"
 
 
 def read_package_v18(file: BufferedReader) -> ModInfo | None:
@@ -21,13 +18,13 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 
 	file.seek(header.file_list_offset, SeekOffset.BEGINNING)
 
-	num_files: int = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
+	num_files: int = read_int(file, VariableSize.Int32)
 	# print("Files:", num_files)
 
 	buf_size: int = num_files * FileEntryV18.SIZE
 	# print("required buffer:", buf_size)
 
-	compressed_size: int = int.from_bytes(file.read(VariableSizes.Int32), INT_FORMAT)
+	compressed_size: int = read_int(file, VariableSize.Int32)
 	# print("compressed size:", compressed_size)
 
 	compressed_file_list: bytes = file.read(compressed_size)
@@ -38,9 +35,7 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 
 	files: list[FileEntryV18] = FileEntryV18.from_buffer(decompressed)
 
-	modinfo: dict[str, str | int] = {key: None for key in ALL_MOD_INFO_KEYS_NAMES}
-
-	has_meta: bool = False
+	modinfo: ModInfo | None = None
 
 	for f in files:
 		# print(f)
@@ -56,33 +51,13 @@ def read_package_v18(file: BufferedReader) -> ModInfo | None:
 
 		# some packages have an uncompressed meta file
 		try:
-			uncompressed_file = lz4.block.decompress(file_data, uncompressed_size=f.uncompressed_size)
+			uncompressed_file: bytes = lz4.block.decompress(file_data, uncompressed_size=f.uncompressed_size)
 		except lz4.block.LZ4BlockError:
-			uncompressed_file = file_data
+			uncompressed_file: bytes = file_data
+
 		# print(uncompressed_file.decode("UTF-8"))
 
-		with tempfile.TemporaryFile() as tmp:
-			tmp.write(uncompressed_file)
-			tmp.flush()
-			tmp.seek(SeekOffset.BEGINNING)
-
-			meta: ElementTree = ElementTree.parse(tmp)
-			# print(meta)
-			root: Element = meta.getroot()
-
-			# TODO: is this the same for all versions?
-			# both Dependencies and ModuleInfo are 'node' elements
-			nodes: list[Element] = root.findall("./region/node/children/")
-			for node in nodes:
-				if node.get('id') == NODE_MODULE_INFO:
-					for n in node.findall("./attribute"):
-						node_id = n.get('id')
-						if node_id in ALL_MOD_INFO_KEYS_NAMES:
-							modinfo[node_id] = n.get('value')
-
-	if not has_meta:
-		print("no meta file, skipping")
-		return None
+		modinfo = read_meta(uncompressed_file)
 
 	# print(modinfo)
-	return ModInfo.from_dict(modinfo)
+	return modinfo

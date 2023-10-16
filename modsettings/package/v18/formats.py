@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import struct
 
-from modsettings import auto_str, divide_chunks
+from modsettings import auto_str, from_buffer
 
 
 # from lslib/LSLib/LS/PackageCommon.cs -- FileEntry18
@@ -18,7 +18,9 @@ from modsettings import auto_str, divide_chunks
 #     public UInt32 SizeOnDisk;
 #     public UInt32 UncompressedSize;
 # }
+
 @auto_str
+@from_buffer
 class FileEntryV18:
 	FileEntry18Format = "=256sIHBBII"
 	FileEntry18Struct = struct.Struct(FileEntry18Format)
@@ -28,19 +30,13 @@ class FileEntryV18:
 	def __init__(self, buffer):
 		entry = FileEntryV18.FileEntry18Struct.unpack(buffer)
 
-		self.name = entry[0].replace(b'\x00', b'').decode("UTF-8")
-		offset_in_file_1 = entry[1]
-		offset_in_file_2 = entry[2]
+		self.name: str = entry[0].replace(b'\x00', b'').decode("UTF-8")
+		offset_in_file_1: int = entry[1]
+		offset_in_file_2: int = entry[2]
 
-		self.offset_in_file = (offset_in_file_2 << 32) | offset_in_file_1
+		self.offset_in_file: int = (offset_in_file_2 << 32) | offset_in_file_1
 
-		self.archive_part = entry[3]
-		self.flags = entry[4]
-		self.size_on_disk = entry[5]
-		self.uncompressed_size = entry[6]
-
-	@staticmethod
-	def from_buffer(buffer: bytes) -> list[FileEntryV18]:
-		if len(buffer) % FileEntryV18.SIZE != 0:
-			raise ValueError(f"buffer has an invalid size! ({len(buffer)})")
-		return [FileEntryV18(item) for item in list(divide_chunks(buffer, FileEntryV18.SIZE))]
+		self.archive_part: int = entry[3]
+		self.flags: int = entry[4]
+		self.size_on_disk: int = entry[5]
+		self.uncompressed_size: int = entry[6]

@@ -2,6 +2,7 @@ import os
 import platform
 import sys
 from enum import Enum
+from io import BufferedReader
 from shutil import copyfile
 
 match platform.system():
@@ -34,11 +35,15 @@ SIGNATURE_SIZE: int = len(SIGNATURE)
 INT_FORMAT: str = "little"
 
 
-class VariableSizes(int, Enum):
+class VariableSize(int, Enum):
 	Byte = 1
 	Int16 = 2
 	Int32 = 4
 	Int64 = 8
+
+
+def read_int(file: BufferedReader, var_type: VariableSize) -> int:
+	return int.from_bytes(file.read(var_type), INT_FORMAT)
 
 
 class SeekOffset(int, Enum):
@@ -94,7 +99,23 @@ def auto_repr(cls):
 	return cls
 
 
-def divide_chunks(l, n):
+def from_buffer(cls):
+	@classmethod
+	def from_buffer(cls, buffer: bytes) -> list:
+		if len(buffer) % cls.SIZE != 0:
+			raise ValueError(f"buffer has an invalid size! ({len(buffer)})")
+
+		return [cls(item) for item in divide_chunks(buffer, cls.SIZE)]
+
+	cls.from_buffer = from_buffer
+	return cls
+
+
+def _div_chunks(l, n):
 	# looping till length l
 	for i in range(0, len(l), n):
 		yield l[i:i + n]
+
+
+def divide_chunks(l, n) -> list:
+	return list(_div_chunks(l, n))
